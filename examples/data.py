@@ -5,6 +5,8 @@ import os
 import pickle
 import logging
 import hashlib
+from transformers import AutoTokenizer
+import json
 log = logging.getLogger(__name__)
 
 
@@ -555,6 +557,63 @@ def load_wizardlm(max_tokens=1024):
     return train_set, eval_set, eval_set
 
 
+@cache_to_disk("data_cache")
+def load_openthoughts2k_10k():
+    path = '/global_data/pretrain/xuyao/SkyThought/skythought/train/LLaMA-Factory/data/Open-Thoughts/samples_0-2048.json'
+    
+    train_set, eval_set = convert_data_format(path)
+    
+    return train_set, eval_set, eval_set
+
+
+@cache_to_disk("data_cache")
+def load_openthoughts16k_10k():
+    path = '/global_data/pretrain/xuyao/SkyThought/skythought/train/LLaMA-Factory/data/Open-Thoughts/samples_0-16384.json'
+    
+    train_set, eval_set = convert_data_format(path)
+    
+    return train_set, eval_set, eval_set
+
+
+def convert_data_format(path):
+    tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-7B-Instruct")
+    with open(path, 'r') as file:
+        samples = json.load(file)
+    
+    train_samples = []
+    for sample in samples:
+        train_sample = {}
+        prompt = [
+            {
+                "role": "system",
+                "content": sample['system']
+            },
+            { 
+                "role": sample['conversations'][0]['from'],
+                "content": sample['conversations'][0]['value']
+            }
+        ]
+        train_sample['x'] = tokenizer.apply_chat_template(
+            prompt,
+            tokenize=False,
+        )
+        
+        response = [
+            { 
+                "role": sample['conversations'][-1]['from'],
+                "content": sample['conversations'][-1]['value']
+            }
+        ]
+        train_sample['y'] = tokenizer.apply_chat_template(
+            response,
+            tokenize=False,
+        )
+        train_samples.append(train_sample)
+    
+    train_set = Dataset.from_list(train_samples)
+    eval_set = Dataset.from_list(train_samples[:10])
+    return train_set,eval_set
+
 DATASET_MAP = {
     "sst2": load_sst2,
     "cola": load_cola,
@@ -574,4 +633,6 @@ DATASET_MAP = {
     "meta_math_5k": load_meta_math_5k,
     "codefeedback": load_codefeedback,
     "wizard_lm": load_wizardlm,
+    "openthoughts2k_10k": load_openthoughts2k_10k,
+    "openthoughts16k_10k": load_openthoughts16k_10k,
 }

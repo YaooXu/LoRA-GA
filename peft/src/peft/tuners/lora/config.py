@@ -394,7 +394,7 @@ class LoraGAConfig(LoraConfig):
     """
 
     bsz: int = field(
-        default=2,
+        default=1,
     )
     iters: int = field(
         default=64,
@@ -403,7 +403,7 @@ class LoraGAConfig(LoraConfig):
         default="ArB2r",
     )
     max_length: str = field(
-        default=1024,
+        default=16384,
     )
     dtype: str = field(
         default="fp32",

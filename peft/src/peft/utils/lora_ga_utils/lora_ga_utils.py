@@ -85,13 +85,14 @@ def estimate_gradient(
     Returns:
         Dict[str, List[torch.Tensor]]: A dictionary mapping parameter names to their estimated gradients.
     """
-    if accelerator and model.device.type != "cuda":
+    if accelerator:
         if not quant_flag:
             model.to(accelerator.device)
         else:
             model.to("cpu")
         model.train()
         dataloader = accelerator.prepare(dataloader)
+        
     named_grads = {}
     num_batch = 0
     from .offload_utils_for_quant import show_gpu_and_cpu_memory
@@ -171,9 +172,9 @@ def save_loraga_model_final(model: PeftModel, save_dir: str):
     model.save_pretrained(tmp_save_dir, path_initial_model_for_weight_conversion=os.path.join(save_dir, init_suffix))
 
     tmp_save_dir = os.path.join(save_dir, init_suffix)
-    if os.path.exists(tmp_save_dir):
-        print(f"delete {tmp_save_dir}")
-        shutil.rmtree(tmp_save_dir)
+    # if os.path.exists(tmp_save_dir):
+    #     print(f"delete {tmp_save_dir}")
+    #     shutil.rmtree(tmp_save_dir)
 
 
 class LoraGAContext:
