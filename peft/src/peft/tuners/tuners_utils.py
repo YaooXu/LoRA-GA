@@ -37,7 +37,6 @@ from ..config import PeftConfig
 from ..utils import ModulesToSaveWrapper, _get_submodules
 from ._buffer_dict import BufferDict
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -405,6 +404,10 @@ class BaseTuner(nn.Module, ABC):
         # update peft_config.target_modules if required
         peft_config = _maybe_include_all_linear_layers(peft_config, model)
 
+        if 'GATE_RANK_COE' in os.environ:
+            gate_peft_config = copy.deepcopy(peft_config)
+            gate_peft_config.r = int(float(os.environ['GATE_RANK_COE']) * gate_peft_config.r)
+
         for key in key_list:
             # Check for modules_to_save in case
             if _check_for_modules_to_save and any(
@@ -428,7 +431,12 @@ class BaseTuner(nn.Module, ABC):
             self.targeted_module_names.append(key)
             is_target_modules_in_base_model = True
             parent, target, target_name = _get_submodules(model, key)
-            self._create_and_replace(peft_config, adapter_name, target, target_name, parent, current_key=key)
+            
+            if 'GATE_RANK_COE' in os.environ:
+                config = peft_config if 'gate' not in key else gate_peft_config
+                self._create_and_replace(config, adapter_name, target, target_name, parent, current_key=key)
+            else:
+                self._create_and_replace(peft_config, adapter_name, target, target_name, parent, current_key=key)
 
         # Handle X-LoRA case.
         if not is_target_modules_in_base_model and hasattr(peft_config, "target_modules"):
